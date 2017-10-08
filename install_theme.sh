@@ -5,7 +5,7 @@ spotifyApps="$spotifyApp/Contents/Resources/Apps/"
 
 # if [ $# -eq 0 ]
 #   then
-#     echo "Usage: install_theme.sh [theme]";
+#     echo "Usage: install_theme.sh [-l] [theme]";
 #     exit;
 # fi
 
@@ -14,7 +14,9 @@ for last; do true; done
 
 themeName=$last
 workingDirectory=$(pwd)
-themeDirectory="$workingDirectory/themes/$themeName/"
+stockDirectory="$workingDirectory/themes/Stock"
+themeDirectory="$workingDirectory/themes/$themeName"
+tempDirectory="$workingDirectory/tmp"
 openSpotifyAfterInstall=false
 
 # Check if -l exists
@@ -39,24 +41,50 @@ fi
 echo "Installing $themeName..."
 echo ""
 
-cd "$themeDirectory"
+rm -rf $tempDirectory
+mkdir $tempDirectory
 
-for file in $spotifyApps*.spa; do
-	filename=$(basename $file)
-	foldername=${filename%%.*}
-	echo "Patching $filename..."
-	unzip -q $file -d $spotifyApps$foldername
-	cp -r glue.css $spotifyApps$foldername/css/glue.css
-	if [ ! "$filename" == "glue-resources.spa" ]; then
-		cp -r $foldername/style.css $spotifyApps$foldername/css/style.css
-	fi
-	cd $spotifyApps$foldername
-	zip -q -r -0 ../$filename .
-	rm -rf $spotifyApps$foldername
-	cd "$themeDirectory"
-done
+(
+	cd $tempDirectory
 
-cd $workingDirectory
+	# Copy uncompressed stock theme
+	cp -R $stockDirectory/* ./
+
+	# Delete stock .spa
+	for file in *.spa; do
+		rm $file
+	done
+
+	# Prepare glue
+	cp zlink/css/glue.css ./
+	cat $(echo $themeDirectory/glue.css) >> glue.css
+
+	# Insert style to each themed component
+	for folder in $themeDirectory/*/; do
+		componentName=$(basename $folder)
+		cat $(echo $folder/style.css) >> $componentName/css/style.css
+	done
+	
+	for folder in */; do
+		componentName=$(basename $folder)
+
+		# Copy new glue to each component
+		cp glue.css $componentName/css/glue.css
+
+		# Compile (zip)
+		(
+			cd $tempDirectory/$folder
+			zip -q -r -0 ../$componentName.spa .
+		)
+	done
+
+	# Install spa files
+	for file in *.spa; do
+		cp $file $spotifyApps/
+	done
+
+	rm -rf $tempDirectory
+)
 
 echo "";
 echo "Theme installed!";
