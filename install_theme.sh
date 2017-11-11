@@ -62,7 +62,11 @@ mkdir $tempDirectory
 	# Insert style to each themed component
 	for folder in $themeDirectory/*/; do
 		componentName=$(basename $folder)
-		cat $(echo $folder/style.css) >> $componentName/css/style.css
+		if [ "$componentName" == "zlink" ]; then
+			cat $(echo $folder/main.css) >> $componentName/css/main.css
+		else
+			cat $(echo $folder/style.css) >> $componentName/css/style.css
+		fi
 	done
 	
 	for folder in */; do
