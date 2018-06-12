@@ -1,4 +1,5 @@
 .idea/
+.stock/
 .DS_Store
 themes/*
 !themes/SAVE_THEMES_HERE
